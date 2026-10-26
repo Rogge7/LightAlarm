@@ -32,6 +32,7 @@ public class EditActivity extends AppCompatActivity {
     private Alarm alarm;
     private TimePicker timePicker;
     private EditText etLabel;
+    private EditText etMessage;
     private TextView tvSound;
     private TextView tvVolumeLabel;
     private SeekBar seekVolume;
@@ -64,6 +65,7 @@ public class EditActivity extends AppCompatActivity {
 
         timePicker = findViewById(R.id.timePicker);
         etLabel = findViewById(R.id.etLabel);
+        etMessage = findViewById(R.id.etMessage);
         tvSound = findViewById(R.id.tvSound);
         tvVolumeLabel = findViewById(R.id.tvVolumeLabel);
         seekVolume = findViewById(R.id.seekVolume);
@@ -81,6 +83,7 @@ public class EditActivity extends AppCompatActivity {
         initTime();
         initDays();
         etLabel.setText(alarm.label);
+        etMessage.setText(alarm.message);
 
         soundUri = alarm.soundUri == null ? "" : alarm.soundUri;
         soundName = alarm.soundName == null || alarm.soundName.length() == 0 ? "系统默认闹铃" : alarm.soundName;
@@ -300,6 +303,9 @@ public class EditActivity extends AppCompatActivity {
 
         String label = etLabel.getText().toString().trim();
         alarm.label = label.length() == 0 ? "该睡觉了" : label;
+
+        String message = etMessage.getText().toString().trim();
+        alarm.message = message.length() == 0 ? "放下手机吧，明天还要早起" : message;
 
         alarm.soundUri = soundUri;
         alarm.soundName = soundName;

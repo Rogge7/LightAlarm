@@ -57,7 +57,7 @@ public class AlarmScheduler {
         if (at <= 0) return;
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        setExactSafely(am, at, pendingIntent(ctx, a.id, false));
+        setExactSafely(am, ctx, at, pendingIntent(ctx, a.id, false));
     }
 
     /** 贪睡：排一个独立的单次闹钟，不影响原闹铃的下一次时间 */
@@ -65,7 +65,7 @@ public class AlarmScheduler {
         long at = System.currentTimeMillis() + Math.max(1, minutes) * 60_000L;
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
-        setExactSafely(am, at, pendingIntent(ctx, a.id, true));
+        setExactSafely(am, ctx, at, pendingIntent(ctx, a.id, true));
     }
 
     public static void cancelAll(Context ctx, long id) {
@@ -109,7 +109,7 @@ public class AlarmScheduler {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
-    private static void setExactSafely(AlarmManager am, long at, PendingIntent pi) {
+    private static void setExactSafely(AlarmManager am, Context ctx, long at, PendingIntent pi) {
         boolean exact = true;
         if (Build.VERSION.SDK_INT >= 31) {
             try {
@@ -119,8 +119,10 @@ public class AlarmScheduler {
             }
         }
         try {
-            if (exact && Build.VERSION.SDK_INT >= 23) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+            if (exact && Build.VERSION.SDK_INT >= 21) {
+                // setAlarmClock 是系统时钟 App 同款 API：优先级最高，
+                // 状态栏显示闹钟图标，国产 ROM 清理后台后存活率明显高于普通闹钟
+                am.setAlarmClock(new AlarmManager.AlarmClockInfo(at, showIntent(ctx)), pi);
             } else if (exact) {
                 am.setExact(AlarmManager.RTC_WAKEUP, at, pi);
             } else if (Build.VERSION.SDK_INT >= 23) {
@@ -139,5 +141,13 @@ public class AlarmScheduler {
             } catch (Exception ignored) {
             }
         }
+    }
+
+    /** setAlarmClock 需要的“查看闹钟”入口：点状态栏闹钟图标时打开主界面 */
+    private static PendingIntent showIntent(Context ctx) {
+        Intent i = new Intent(ctx, MainActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return PendingIntent.getActivity(ctx, 0, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 }

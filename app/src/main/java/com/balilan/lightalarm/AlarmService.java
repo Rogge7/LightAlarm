@@ -197,6 +197,9 @@ public class AlarmService extends Service {
             TextView tvDays = view.findViewById(R.id.tvRingDays);
             tvDays.setText(alarm.daysText());
 
+            TextView tvMessage = view.findViewById(R.id.tvRingMessage);
+            tvMessage.setText(alarm.message);
+
             TextView tvCountdown = view.findViewById(R.id.tvRingCountdown);
             tvCountdown.setText("铃声将在 " + Math.max(5, alarm.ringSeconds) + " 秒后自动停止");
 

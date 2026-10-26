@@ -63,6 +63,9 @@ public class RingActivity extends AppCompatActivity {
         TextView tvDays = findViewById(R.id.tvRingDays);
         tvDays.setText(alarm.daysText());
 
+        TextView tvMessage = findViewById(R.id.tvRingMessage);
+        tvMessage.setText(alarm.message);
+
         tvCountdown = findViewById(R.id.tvRingCountdown);
 
         Button btnSnooze = findViewById(R.id.btnSnooze);

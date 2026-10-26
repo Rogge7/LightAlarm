@@ -39,9 +39,12 @@ public class MainActivity extends AppCompatActivity {
     private AlarmStore store;
     private LinearLayout alarmContainer;
     private LinearLayout permContainer;
+    private LinearLayout permBody;
+    private TextView tvPermTitle;
     private TextView tvEmpty;
     private TextView tvLastStatus;
     private TextView tvNextAlarm;
+    private boolean permExpanded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
         store = new AlarmStore(this);
         alarmContainer = findViewById(R.id.alarmContainer);
         permContainer = findViewById(R.id.permContainer);
+        permBody = findViewById(R.id.permBody);
+        tvPermTitle = findViewById(R.id.tvPermTitle);
         tvEmpty = findViewById(R.id.tvEmpty);
         tvLastStatus = findViewById(R.id.tvLastStatus);
         tvNextAlarm = findViewById(R.id.tvNextAlarm);
@@ -290,6 +295,48 @@ public class MainActivity extends AppCompatActivity {
                         openAppDetails();
                     }
                 });
+        addPermRow("任务列表中锁定本应用（防一键清理）", false, "怎么看",
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showLockGuide();
+                    }
+                });
+
+        // 五个可检测权限全部就绪时自动折叠成一行，点标题可展开
+        final boolean allGranted = notificationOk && exactOk && batteryOk && fullScreenOk && overlayOk;
+        if (!permExpanded && allGranted) {
+            permBody.setVisibility(View.GONE);
+            tvPermTitle.setText("运行权限  ✓ 全部就绪（点开查看）");
+        } else {
+            permExpanded = true;
+            permBody.setVisibility(View.VISIBLE);
+            tvPermTitle.setText("运行权限（不开启可能导致不响铃）");
+        }
+        tvPermTitle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                permExpanded = permBody.getVisibility() != View.VISIBLE;
+                permBody.setVisibility(permExpanded ? View.VISIBLE : View.GONE);
+                tvPermTitle.setText(permExpanded
+                        ? "运行权限（不开启可能导致不响铃）"
+                        : "运行权限  ✓ 全部就绪（点开查看）");
+            }
+        });
+    }
+
+    /** 引导用户在任务列表中锁定本应用，防止被一键清理 */
+    private void showLockGuide() {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("锁定后台，防止被清理")
+                .setMessage("从任务列表划掉本应用，国产手机会把它当成“强行停止”，闹钟会被一起清掉。\n\n"
+                        + "通用做法：\n"
+                        + "1. 按出任务列表（多任务键）\n"
+                        + "2. 找到本应用的卡片\n"
+                        + "3. 下拉卡片（小米/红米）或点卡片右上角菜单，选择「锁定」，卡片上会出现小锁\n\n"
+                        + "锁定后一键清理不会杀掉本应用，闹钟准时率会高很多。")
+                .setPositiveButton("知道了", null)
+                .show();
     }
 
     private void addPermRow(String title, boolean ok, String buttonText, View.OnClickListener listener) {
@@ -299,7 +346,7 @@ public class MainActivity extends AppCompatActivity {
         row.setPadding(0, dp(6), 0, dp(6));
 
         TextView name = new TextView(this);
-        if ("允许自启动与后台弹窗（国产手机必开）".equals(title)) {
+        if (title.startsWith("允许自启动") || title.startsWith("任务列表")) {
             name.setText("•  " + title);
             name.setTextColor(0xFF6B7785);
         } else {
