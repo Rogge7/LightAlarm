@@ -284,7 +284,8 @@ public class AlarmService extends Service {
 
         MediaPlayer p = null;
         try {
-            p = MediaPlayer.create(this, uri, null, attrs);
+            p = MediaPlayer.create(this, uri);
+            if (p != null) p.setAudioAttributes(attrs);
         } catch (Exception ignored) {
         }
         if (p == null) {
@@ -292,7 +293,8 @@ public class AlarmService extends Service {
             Uri fallback = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
             if (fallback != null) {
                 try {
-                    p = MediaPlayer.create(this, fallback, null, attrs);
+                    p = MediaPlayer.create(this, fallback);
+                    if (p != null) p.setAudioAttributes(attrs);
                 } catch (Exception ignored) {
                 }
             }
