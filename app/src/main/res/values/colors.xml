@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#FF243B55</color>
+    <color name="primary_dark">#FF16232F</color>
+    <color name="accent">#FFFFB74D</color>
+    <color name="bg">#FFF3F5F8</color>
+    <color name="card">#FFFFFFFF</color>
+    <color name="text">#FF1F2A37</color>
+    <color name="sub">#FF6B7785</color>
+    <color name="divider">#FFE3E8EF</color>
+    <color name="ring_bg">#FF0E1626</color>
+    <color name="ring_sub">#FFB8C4D6</color>
+    <color name="ring_hint">#FF7E8BA3</color>
+</resources>
