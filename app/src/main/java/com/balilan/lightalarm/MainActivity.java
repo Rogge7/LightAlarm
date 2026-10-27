@@ -77,6 +77,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         AlarmService.ensureChannels(this);
+        GuardService.ensureChannel(this);
+        if (GuardService.isEnabled(this)) {
+            GuardService.start(this);
+        }
     }
 
     @Override
@@ -300,6 +304,21 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(View v) {
                         showLockGuide();
+                    }
+                });
+
+        final boolean guardOn = GuardService.isEnabled(this);
+        addPermRow("后台常驻守护（关掉后更容易漏响）", guardOn, guardOn ? "关闭" : "开启",
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        GuardService.setEnabled(MainActivity.this, !GuardService.isEnabled(MainActivity.this));
+                        refresh();
+                        Toast.makeText(MainActivity.this,
+                                GuardService.isEnabled(MainActivity.this)
+                                        ? "已开启常驻守护，通知栏会有一条常驻通知"
+                                        : "已关闭常驻守护",
+                                Toast.LENGTH_SHORT).show();
                     }
                 });
 

@@ -57,6 +57,12 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- 常驻守护：降低被系统清理的概率（Android 14+ 必须声明前台服务类型） -->
+        <service
+            android:name=".GuardService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <!-- 闹钟触发（显式请求，不需要对外暴露） -->
         <receiver
             android:name=".AlarmReceiver"

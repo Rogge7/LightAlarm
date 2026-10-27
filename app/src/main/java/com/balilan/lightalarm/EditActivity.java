@@ -1,8 +1,10 @@
 package com.balilan.lightalarm;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
+import android.media.AudioAttributes;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -22,10 +24,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** 新增 / 编辑闹铃 */
 public class EditActivity extends AppCompatActivity {
 
-    private static final int REQ_RINGTONE = 100;
     private static final int REQ_AUDIO = 101;
 
     private AlarmStore store;
@@ -42,6 +46,8 @@ public class EditActivity extends AppCompatActivity {
 
     private String soundUri = "";
     private String soundName = "系统默认闹铃";
+    /** 试听用的铃声对象 */
+    private Ringtone previewRingtone;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,19 +182,21 @@ public class EditActivity extends AppCompatActivity {
     }
 
     private void showSoundDialog() {
-        final String[] items = {"系统默认闹铃", "从系统铃声中选择", "从本地音频文件中选择"};
+        final String[] items = {"系统默认闹铃（点选试听）", "从系统铃声中选择（可试听）", "从本地音频文件中选择"};
         new AlertDialog.Builder(this)
                 .setTitle("选择铃声")
-                .setItems(items, new android.content.DialogInterface.OnClickListener() {
+                .setItems(items, new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(android.content.DialogInterface dialog, int which) {
+                    public void onClick(DialogInterface dialog, int which) {
                         if (which == 0) {
                             soundUri = "";
                             soundName = "系统默认闹铃";
                             tvSound.setText(soundName);
+                            previewUri(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
                         } else if (which == 1) {
-                            pickSystemRingtone();
+                            showRingtoneList();
                         } else {
+                            stopPreview();
                             pickLocalAudio();
                         }
                     }
@@ -196,21 +204,111 @@ public class EditActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void pickSystemRingtone() {
+    /** 列出系统闹铃，点击任意一条立即试听，点“确定”采用 */
+    private void showRingtoneList() {
+        final List<Uri> uris = new ArrayList<>();
+        final List<String> names = new ArrayList<>();
         try {
-            Intent i = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
-            i.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
-            i.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "选择闹铃");
-            i.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true);
-            i.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false);
-            Uri def = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (def != null) {
-                i.putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, def);
+            RingtoneManager rm = new RingtoneManager(this);
+            rm.setType(RingtoneManager.TYPE_ALARM);
+            Cursor c = rm.getCursor();
+            if (c != null) {
+                while (c.moveToNext()) {
+                    Uri u = rm.getRingtoneUri(c.getPosition());
+                    if (u == null) continue;
+                    String title = c.getString(RingtoneManager.TITLE_COLUMN_INDEX);
+                    if (title == null || title.length() == 0) title = "铃声 " + (uris.size() + 1);
+                    uris.add(u);
+                    names.add(title);
+                }
+                c.close();
             }
-            startActivityForResult(i, REQ_RINGTONE);
-        } catch (Exception e) {
-            Toast.makeText(this, "系统没有提供铃声选择器", Toast.LENGTH_SHORT).show();
+        } catch (Exception ignored) {
         }
+        if (uris.isEmpty()) {
+            Toast.makeText(this, "系统里没有可用的闹铃，请从本地音频选择", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        int checked = -1;
+        for (int i = 0; i < uris.size(); i++) {
+            if (uris.get(i).toString().equals(soundUri)) {
+                checked = i;
+                break;
+            }
+        }
+        final int[] selected = {checked};
+
+        AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle("选择闹铃（点一下试听）")
+                .setSingleChoiceItems(names.toArray(new String[0]), checked,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface d, int which) {
+                                selected[0] = which;
+                                previewUri(uris.get(which));
+                            }
+                        })
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        if (selected[0] >= 0) {
+                            soundUri = uris.get(selected[0]).toString();
+                            soundName = names.get(selected[0]);
+                            tvSound.setText(soundName);
+                        }
+                        stopPreview();
+                    }
+                })
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        stopPreview();
+                    }
+                })
+                .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface d) {
+                        stopPreview();
+                    }
+                })
+                .create();
+        dlg.show();
+        if (checked >= 0) previewUri(uris.get(checked));
+    }
+
+    /** 试听：切换到新铃声时先停掉旧的再播放 */
+    private void previewUri(Uri uri) {
+        stopPreview();
+        if (uri == null) return;
+        try {
+            Ringtone r = RingtoneManager.getRingtone(this, uri);
+            if (r == null) return;
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            r.setAudioAttributes(attrs);
+            r.play();
+            previewRingtone = r;
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void stopPreview() {
+        if (previewRingtone != null) {
+            try {
+                if (previewRingtone.isPlaying()) previewRingtone.stop();
+            } catch (Exception ignored) {
+            }
+            previewRingtone = null;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        stopPreview();
+        super.onDestroy();
     }
 
     private void pickLocalAudio() {
@@ -231,17 +329,7 @@ public class EditActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode != RESULT_OK || data == null) return;
 
-        if (requestCode == REQ_RINGTONE) {
-            Uri uri = (Uri) data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
-            if (uri == null) {
-                soundUri = "";
-                soundName = "系统默认闹铃";
-            } else {
-                soundUri = uri.toString();
-                soundName = ringtoneName(uri);
-            }
-            tvSound.setText(soundName);
-        } else if (requestCode == REQ_AUDIO) {
+        if (requestCode == REQ_AUDIO) {
             Uri uri = data.getData();
             if (uri == null) return;
             try {
@@ -251,19 +339,8 @@ public class EditActivity extends AppCompatActivity {
             soundUri = uri.toString();
             soundName = queryDisplayName(uri);
             tvSound.setText(soundName);
+            previewUri(uri);
         }
-    }
-
-    private String ringtoneName(Uri uri) {
-        try {
-            Ringtone r = RingtoneManager.getRingtone(this, uri);
-            if (r != null) {
-                String title = r.getTitle(this);
-                if (title != null && title.length() > 0) return title;
-            }
-        } catch (Exception ignored) {
-        }
-        return "已选系统铃声";
     }
 
     private String queryDisplayName(Uri uri) {

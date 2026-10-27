@@ -36,19 +36,24 @@ public class AlarmService extends Service {
 
     public static final String CHANNEL_RING = "alarm_ring";
     public static final String CHANNEL_FALLBACK = "alarm_fallback";
+    public static final String CHANNEL_AFTER = "alarm_after";
     public static final String ACTION_STOP = "com.balilan.lightalarm.STOP_RING";
 
     private static final int NOTIFICATION_ID = 3001;
+    /** 铃声停止后保留的“已提醒”通知，用户可手动清除 */
+    private static final int NOTIFICATION_ID_KEEP = 3002;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private MediaPlayer player;
     private PowerManager.WakeLock wakeLock;
     private View overlayView;
+    private Alarm currentAlarm;
 
     private final Runnable stopRunnable = new Runnable() {
         @Override
         public void run() {
-            stopSelf();
+            // 铃声到时自动停，但留一条通知，避免用户离开后什么都不剩
+            stopRingKeepNotice();
         }
     };
 
@@ -72,6 +77,9 @@ public class AlarmService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
+        currentAlarm = alarm;
+        // 新一轮响铃开始，清掉上一次残留的“已提醒”通知
+        cancelKeepNotice();
 
         startForeground(NOTIFICATION_ID, buildNotification(alarm));
         acquireWakeLock();
@@ -132,6 +140,15 @@ public class AlarmService extends Service {
                 fb.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
                 nm.createNotificationChannel(fb);
             }
+            if (nm.getNotificationChannel(CHANNEL_AFTER) == null) {
+                NotificationChannel after = new NotificationChannel(CHANNEL_AFTER, "响铃后的提醒记录",
+                        NotificationManager.IMPORTANCE_DEFAULT);
+                after.setDescription("铃声停止后保留的提醒，可手动清除");
+                after.setSound(null, null);
+                after.enableVibration(false);
+                after.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+                nm.createNotificationChannel(after);
+            }
         } catch (Exception ignored) {
         }
     }
@@ -163,6 +180,56 @@ public class AlarmService extends Service {
                 .setContentIntent(fullPi)
                 .addAction(android.R.drawable.ic_menu_close_clear_cancel, "关闭铃声", stopPi)
                 .build();
+    }
+
+    /** 铃声到时停止：关掉声音与弹窗，但留一条通知直到用户手动清除 */
+    private void stopRingKeepNotice() {
+        stopPlayer();
+        hideOverlay();
+        Alarm a = currentAlarm;
+        if (a != null) {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) {
+                try {
+                    nm.notify(NOTIFICATION_ID_KEEP, buildKeepNotification(a));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        stopSelf();
+    }
+
+    private Notification buildKeepNotification(Alarm alarm) {
+        Intent open = new Intent(this, MainActivity.class);
+        open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent openPi = PendingIntent.getActivity(this, 210, open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        String time = String.format(Locale.getDefault(), "%02d:%02d", alarm.hour, alarm.minute);
+        NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL_AFTER)
+                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setContentTitle("该睡觉了 · " + time)
+                .setContentText(alarm.message)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(alarm.message))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setAutoCancel(true)
+                .setContentIntent(openPi);
+        if (alarm.enabled || alarm.days != 0) {
+            b.addAction(android.R.drawable.ic_popup_reminder,
+                    "延迟 " + alarm.snoozeMinutes + " 分钟",
+                    AlarmScheduler.snoozePendingIntent(this, alarm));
+        }
+        return b.build();
+    }
+
+    private void cancelKeepNotice() {
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(NOTIFICATION_ID_KEEP);
+        } catch (Exception ignored) {
+        }
     }
 
     /** 有悬浮窗权限时用悬浮窗弹全屏（最可靠），否则尝试直接拉起提醒页 */

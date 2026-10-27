@@ -20,7 +20,7 @@ public class Alarm {
     /** 空字符串表示使用系统默认闹铃 */
     public String soundUri = "";
     public String soundName = "系统默认闹铃";
-    public int ringSeconds = 30;
+    public int ringSeconds = 60;
     /** 应用内音量 0~100（不改系统音量） */
     public int volume = 80;
     public int snoozeMinutes = 10;
@@ -59,7 +59,7 @@ public class Alarm {
         a.enabled = o.optBoolean("enabled", true);
         a.soundUri = o.optString("soundUri", "");
         a.soundName = o.optString("soundName", "系统默认闹铃");
-        a.ringSeconds = o.optInt("ringSeconds", 30);
+        a.ringSeconds = o.optInt("ringSeconds", 60);
         a.volume = o.optInt("volume", 80);
         a.snoozeMinutes = o.optInt("snoozeMinutes", 10);
         return a;

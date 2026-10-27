@@ -13,5 +13,12 @@ public class SystemReceiver extends BroadcastReceiver {
             AlarmScheduler.rescheduleAll(context);
         } catch (Exception ignored) {
         }
+        // 开机后按用户选择恢复常驻守护
+        try {
+            if (GuardService.isEnabled(context)) {
+                GuardService.start(context);
+            }
+        } catch (Exception ignored) {
+        }
     }
 }

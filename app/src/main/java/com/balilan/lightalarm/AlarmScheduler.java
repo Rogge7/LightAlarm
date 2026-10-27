@@ -75,6 +75,11 @@ public class AlarmScheduler {
         am.cancel(pendingIntent(ctx, id, true));
     }
 
+    /** 通知上“延迟”按钮使用：到点后与普通贪睡逻辑一致 */
+    public static PendingIntent snoozePendingIntent(Context ctx, Alarm a) {
+        return pendingIntent(ctx, a.id, true);
+    }
+
     public static void rescheduleAll(Context ctx) {
         AlarmStore store = new AlarmStore(ctx);
         for (Alarm a : store.load()) {
