@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvEmpty;
     private TextView tvLastStatus;
     private TextView tvNextAlarm;
+    private Switch switchCurfew;
+    private TextView tvCurfewInfo;
     private boolean permExpanded;
 
     @Override
@@ -59,6 +61,15 @@ public class MainActivity extends AppCompatActivity {
         tvEmpty = findViewById(R.id.tvEmpty);
         tvLastStatus = findViewById(R.id.tvLastStatus);
         tvNextAlarm = findViewById(R.id.tvNextAlarm);
+        switchCurfew = findViewById(R.id.switchCurfew);
+        tvCurfewInfo = findViewById(R.id.tvCurfewInfo);
+
+        findViewById(R.id.curfewCard).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, CurfewActivity.class));
+            }
+        });
 
         Button btnAdd = findViewById(R.id.btnAdd);
         btnAdd.setOnClickListener(new View.OnClickListener() {
@@ -81,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
         if (GuardService.isEnabled(this)) {
             GuardService.start(this);
         }
+        // 启动每 4 小时的闹钟健康检查（被系统清掉的闹钟会自动补回来）
+        AlarmScheduler.scheduleHealthCheck(this);
     }
 
     @Override
@@ -99,6 +112,32 @@ public class MainActivity extends AppCompatActivity {
         renderAlarms();
         renderPermissions();
         renderStatus();
+        renderCurfew();
+    }
+
+    private void renderCurfew() {
+        final CurfewStore cs = new CurfewStore(this);
+        switchCurfew.setOnCheckedChangeListener(null);
+        switchCurfew.setChecked(cs.isEnabled());
+        switchCurfew.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(android.widget.CompoundButton buttonView, boolean isChecked) {
+                cs.setEnabled(isChecked);
+                AlarmScheduler.scheduleCurfew(MainActivity.this);
+                Toast.makeText(MainActivity.this,
+                        isChecked ? "宵禁模式已开启" : "宵禁模式已关闭", Toast.LENGTH_SHORT).show();
+                renderCurfew();
+            }
+        });
+        if (cs.isEnabled()) {
+            tvCurfewInfo.setText(String.format(Locale.getDefault(),
+                    "%02d:%02d – %02d:%02d · 每 %d 分钟提醒 · 点卡片修改",
+                    cs.getStartMin() / 60, cs.getStartMin() % 60,
+                    cs.getEndMin() / 60, cs.getEndMin() % 60,
+                    cs.getIntervalMin()));
+        } else {
+            tvCurfewInfo.setText("关闭中 · 深夜时段只要亮屏就按间隔提醒，点卡片设置");
+        }
     }
 
     private void renderAlarms() {

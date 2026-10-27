@@ -7,3 +7,6 @@ captures/
 .externalNativeBuild/
 .cxx/
 *.apk
+# 签名密钥库只留在本机，不进仓库
+lightalarm.jks
+keystore_base64.txt

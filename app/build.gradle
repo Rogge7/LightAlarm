@@ -10,13 +10,27 @@ android {
         applicationId "com.balilan.lightalarm"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
+    }
+
+    // 发布签名：密钥库不进仓库，由 GitHub Secrets 在云端解码注入；
+    // 未配置 Secrets 时回退 debug 签名，保证 APK 始终可安装
+    def keystorePass = System.getenv('KEYSTORE_PASSWORD')
+    signingConfigs {
+        release {
+            def ksFile = System.getenv('KEYSTORE_FILE')
+            if (ksFile != null) storeFile file(ksFile)
+            storePassword keystorePass
+            keyAlias System.getenv('KEY_ALIAS') ?: 'lightalarm'
+            keyPassword System.getenv('KEY_PASSWORD')
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig keystorePass != null ? signingConfigs.release : signingConfigs.debug
         }
     }
 

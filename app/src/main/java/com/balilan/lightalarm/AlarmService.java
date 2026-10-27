@@ -71,8 +71,13 @@ public class AlarmService extends Service {
         }
 
         long id = intent == null ? -1 : intent.getLongExtra(AlarmScheduler.EXTRA_ID, -1);
-        AlarmStore store = new AlarmStore(this);
-        Alarm alarm = store.find(id);
+        Alarm alarm;
+        if (id == AlarmScheduler.CURFEW_ID) {
+            // 宵禁提醒是伪闹铃，参数来自 CurfewStore
+            alarm = new CurfewStore(this).toAlarm();
+        } else {
+            alarm = new AlarmStore(this).find(id);
+        }
         if (alarm == null) {
             stopSelf();
             return START_NOT_STICKY;
@@ -348,7 +353,7 @@ public class AlarmService extends Service {
         if (uri == null) return;
 
         AudioAttributes attrs = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setUsage(alarm.soundMode == 1 ? AudioAttributes.USAGE_MEDIA : AudioAttributes.USAGE_ALARM)
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build();
 

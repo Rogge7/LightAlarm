@@ -20,6 +20,13 @@ public class AlarmScheduler {
     public static final String EXTRA_ID = "alarm_id";
     public static final String EXTRA_SNOOZE = "is_snooze";
 
+    /** 宵禁提醒使用的伪闹铃 ID（正常闹铃 ID 是时间戳，不会撞） */
+    public static final long CURFEW_ID = -1000L;
+    public static final String ACTION_CURFEW = "com.balilan.lightalarm.CURFEW_TICK";
+    public static final String ACTION_HEALTH = "com.balilan.lightalarm.HEALTH_CHECK";
+    /** 健康检查间隔：4 小时 */
+    private static final long HEALTH_INTERVAL = 4L * 3600_000L;
+
     /** 下一次触发时间（毫秒）；无法计算时返回 -1 */
     public static long nextTriggerAt(Alarm a, long fromMillis) {
         Calendar c = Calendar.getInstance();
@@ -85,6 +92,74 @@ public class AlarmScheduler {
         for (Alarm a : store.load()) {
             if (a.enabled) schedule(ctx, a);
             else cancelAll(ctx, a.id);
+        }
+        scheduleCurfew(ctx);
+        scheduleHealthCheck(ctx);
+    }
+
+    /** 该闹铃是否仍注册在 AlarmManager 中（被杀后台/重启后会被系统清掉） */
+    public static boolean isScheduled(Context ctx, long id) {
+        Intent i = new Intent(ctx, AlarmReceiver.class);
+        i.setAction(ACTION_FIRE);
+        i.setData(Uri.parse("lightalarm://alarm/" + id));
+        return PendingIntent.getBroadcast(ctx, 0, i,
+                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE) != null;
+    }
+
+    /* ---------------- 宵禁时段模式 ---------------- */
+
+    /** 按当前是否在时段内，排下一次宵禁检查点（时段内=现在+间隔；时段外=下一个开始时刻） */
+    public static void scheduleCurfew(Context ctx) {
+        AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        PendingIntent pi = curfewIntent(ctx, false);
+        CurfewStore cs = new CurfewStore(ctx);
+        if (!cs.isEnabled()) {
+            am.cancel(pi);
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long next = cs.inWindow(now) ? now + cs.getIntervalMin() * 60_000L : cs.nextWindowStart(now);
+        setExactSafely(am, ctx, next, pi);
+    }
+
+    public static void cancelCurfew(Context ctx) {
+        AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am != null) am.cancel(curfewIntent(ctx, false));
+    }
+
+    public static boolean isCurfewScheduled(Context ctx) {
+        return curfewIntent(ctx, true) != null;
+    }
+
+    private static PendingIntent curfewIntent(Context ctx, boolean noCreate) {
+        Intent i = new Intent(ctx, CurfewReceiver.class);
+        i.setAction(ACTION_CURFEW);
+        i.setData(Uri.parse("lightalarm://curfew"));
+        int flags = PendingIntent.FLAG_IMMUTABLE
+                | (noCreate ? PendingIntent.FLAG_NO_CREATE : PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getBroadcast(ctx, 0, i, flags);
+    }
+
+    /* ---------------- 每 4 小时健康检查 ---------------- */
+
+    public static void scheduleHealthCheck(Context ctx) {
+        AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        Intent i = new Intent(ctx, HealthReceiver.class);
+        i.setAction(ACTION_HEALTH);
+        i.setData(Uri.parse("lightalarm://health"));
+        PendingIntent pi = PendingIntent.getBroadcast(ctx, 0, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        long at = System.currentTimeMillis() + HEALTH_INTERVAL;
+        try {
+            if (Build.VERSION.SDK_INT >= 23) {
+                // 自检不需要精确到秒，用省电的非精确闹钟即可
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+            } else {
+                am.set(AlarmManager.RTC_WAKEUP, at, pi);
+            }
+        } catch (Exception ignored) {
         }
     }
 
