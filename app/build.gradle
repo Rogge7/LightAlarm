@@ -15,12 +15,13 @@ android {
     }
 
     // 发布签名：密钥库不进仓库，由 GitHub Secrets 在云端解码注入；
-    // 未配置 Secrets 时回退 debug 签名，保证 APK 始终可安装
+    // 未配置 Secrets 时（值为空字符串）回退 debug 签名，保证 APK 始终可安装
     def keystorePass = System.getenv('KEYSTORE_PASSWORD')
+    def hasReleaseKey = keystorePass != null && keystorePass.length() > 0
     signingConfigs {
         release {
             def ksFile = System.getenv('KEYSTORE_FILE')
-            if (ksFile != null) storeFile file(ksFile)
+            if (ksFile != null && ksFile.length() > 0) storeFile file(ksFile)
             storePassword keystorePass
             keyAlias System.getenv('KEY_ALIAS') ?: 'lightalarm'
             keyPassword System.getenv('KEY_PASSWORD')
@@ -30,7 +31,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig keystorePass != null ? signingConfigs.release : signingConfigs.debug
+            signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
         }
     }
 
