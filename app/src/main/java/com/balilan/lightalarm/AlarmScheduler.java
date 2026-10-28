@@ -24,8 +24,8 @@ public class AlarmScheduler {
     public static final long CURFEW_ID = -1000L;
     public static final String ACTION_CURFEW = "com.balilan.lightalarm.CURFEW_TICK";
     public static final String ACTION_HEALTH = "com.balilan.lightalarm.HEALTH_CHECK";
-    /** 健康检查间隔：4 小时 */
-    private static final long HEALTH_INTERVAL = 4L * 3600_000L;
+    /** 健康检查间隔：1 小时（验证阶段，确认有效后可改回 4 小时） */
+    private static final long HEALTH_INTERVAL = 3600_000L;
 
     /** 下一次触发时间（毫秒）；无法计算时返回 -1 */
     public static long nextTriggerAt(Alarm a, long fromMillis) {

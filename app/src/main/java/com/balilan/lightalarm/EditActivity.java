@@ -306,16 +306,25 @@ public class EditActivity extends AppCompatActivity {
     private void previewUri(Uri uri) {
         stopPreview();
         if (uri == null) return;
+        MediaPlayer p = new MediaPlayer();
         try {
-            MediaPlayer p = MediaPlayer.create(this, uri);
-            if (p == null) return;
             p.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build());
+            if ("file".equals(uri.getScheme())) {
+                p.setDataSource(uri.getPath());
+            } else {
+                p.setDataSource(this, uri);
+            }
+            p.prepare();
             p.start();
             previewPlayer = p;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            try {
+                p.release();
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -343,7 +352,10 @@ public class EditActivity extends AppCompatActivity {
     /* ---------------- 我的录音 ---------------- */
 
     private File recordingsDir() {
-        File dir = new File(getFilesDir(), "recordings");
+        // 存到外部存储的应用目录，方便用文件管理器查找：
+        // /storage/emulated/0/Android/data/com.balilan.lightalarm/files/recordings
+        File dir = getExternalFilesDir("recordings");
+        if (dir == null) dir = new File(getFilesDir(), "recordings");
         if (!dir.exists()) dir.mkdirs();
         return dir;
     }
@@ -492,34 +504,48 @@ public class EditActivity extends AppCompatActivity {
 
     private void finishRecording(boolean save) {
         File f = recordingFile;
-        cleanupRecorder(save);
-        if (save && f != null && f.exists() && f.length() > 0) {
-            soundUri = Uri.fromFile(f).toString();
-            soundName = displayNameOf(f);
-            tvSound.setText(soundName);
-            previewUri(Uri.fromFile(f));
-            Toast.makeText(this, "录音已保存并选用", Toast.LENGTH_SHORT).show();
+        recordingFile = null;
+        stopRecorder();
+        boolean ok = save && f != null && f.exists() && f.length() > 0;
+        if (!ok) {
+            if (f != null) {
+                try {
+                    f.delete();
+                } catch (Exception ignored) {
+                }
+            }
+            if (save) Toast.makeText(this, "录音太短，未保存", Toast.LENGTH_SHORT).show();
+            return;
         }
+        soundUri = Uri.fromFile(f).toString();
+        soundName = displayNameOf(f);
+        tvSound.setText(soundName);
+        previewUri(Uri.fromFile(f));
+        Toast.makeText(this, "录音已保存并选用", Toast.LENGTH_SHORT).show();
     }
 
-    private void cleanupRecorder(boolean keepFile) {
-        boolean keep = keepFile;
-        if (recorder != null) {
-            try {
-                recorder.stop();
-            } catch (Exception ignored) {
-                // 录音时间太短时 stop 会抛异常，这条作废
-                keep = false;
-            }
-            try {
-                recorder.release();
-            } catch (Exception ignored) {
-            }
-            recorder = null;
+    /** 停止并释放录音器（不动文件） */
+    private void stopRecorder() {
+        if (recorder == null) return;
+        try {
+            recorder.stop();
+        } catch (Exception ignored) {
         }
-        if (!keep && recordingFile != null) {
+        try {
+            recorder.release();
+        } catch (Exception ignored) {
+        }
+        recorder = null;
+    }
+
+    /** 异常/退出路径：丢掉正在录制的临时文件 */
+    private void cleanupRecorder(boolean keepFile) {
+        File f = recordingFile;
+        recordingFile = null;
+        stopRecorder();
+        if (!keepFile && f != null) {
             try {
-                recordingFile.delete();
+                f.delete();
             } catch (Exception ignored) {
             }
         }

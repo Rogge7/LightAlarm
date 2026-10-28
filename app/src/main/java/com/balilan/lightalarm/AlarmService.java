@@ -357,22 +357,12 @@ public class AlarmService extends Service {
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .build();
 
-        MediaPlayer p = null;
-        try {
-            p = MediaPlayer.create(this, uri);
-            if (p != null) p.setAudioAttributes(attrs);
-        } catch (Exception ignored) {
-        }
+        MediaPlayer p = createPlayer(uri, attrs);
         if (p == null) {
-            // 自定义铃声失效时退回系统默认闹铃
+            // 自定义铃声失效（文件被删/格式不支持）时退回系统默认闹铃
             Uri fallback = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (fallback != null) {
-                try {
-                    p = MediaPlayer.create(this, fallback);
-                    if (p != null) p.setAudioAttributes(attrs);
-                } catch (Exception ignored) {
-                }
-            }
+            if (fallback == null) fallback = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+            if (fallback != null) p = createPlayer(fallback, attrs);
         }
         if (p == null) return;
 
@@ -390,10 +380,40 @@ public class AlarmService extends Service {
         }
     }
 
+    /**
+     * 必须在 prepare 之前设置 AudioAttributes，否则声音会走媒体声道，
+     * 导致“闹铃模式听不见、蓝牙只从扬声器出来”的问题。
+     */
+    private MediaPlayer createPlayer(Uri uri, AudioAttributes attrs) {
+        MediaPlayer p = new MediaPlayer();
+        try {
+            p.setAudioAttributes(attrs);
+            if ("file".equals(uri.getScheme())) {
+                p.setDataSource(uri.getPath());
+            } else {
+                p.setDataSource(this, uri);
+            }
+            p.prepare();
+            return p;
+        } catch (Exception e) {
+            try {
+                p.release();
+            } catch (Exception ignored) {
+            }
+            return null;
+        }
+    }
+
     private Uri resolveUri(Alarm alarm) {
         if (alarm.soundUri != null && alarm.soundUri.length() > 0) {
             try {
-                return Uri.parse(alarm.soundUri);
+                Uri u = Uri.parse(alarm.soundUri);
+                boolean valid = true;
+                if ("file".equals(u.getScheme())) {
+                    java.io.File f = new java.io.File(u.getPath());
+                    valid = f.exists() && f.length() > 0;
+                }
+                if (valid) return u;
             } catch (Exception ignored) {
             }
         }

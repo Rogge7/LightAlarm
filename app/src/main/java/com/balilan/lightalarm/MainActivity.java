@@ -361,6 +361,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+        addPermRow("闹钟健康检查（每 1 小时自动补排）", false, "立即自检",
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        int fixed = HealthReceiver.checkNow(MainActivity.this);
+                        Toast.makeText(MainActivity.this, fixed == 0
+                                        ? "检查完成：所有提醒都在，无需修复"
+                                        : "检查完成：修复了 " + fixed + " 个被系统清理的提醒",
+                                Toast.LENGTH_LONG).show();
+                        refresh();
+                    }
+                });
+
         // 五个可检测权限全部就绪时自动折叠成一行，点标题可展开
         final boolean allGranted = notificationOk && exactOk && batteryOk && fullScreenOk && overlayOk;
         if (!permExpanded && allGranted) {
@@ -404,7 +417,8 @@ public class MainActivity extends AppCompatActivity {
         row.setPadding(0, dp(6), 0, dp(6));
 
         TextView name = new TextView(this);
-        if (title.startsWith("允许自启动") || title.startsWith("任务列表")) {
+        if (title.startsWith("允许自启动") || title.startsWith("任务列表")
+                || title.startsWith("闹钟健康检查")) {
             name.setText("•  " + title);
             name.setTextColor(0xFF6B7785);
         } else {

@@ -30,6 +30,14 @@ public class HealthReceiver extends BroadcastReceiver {
         } catch (Exception ignored) {
         }
 
+        int fixed = checkNow(context);
+        if (fixed > 0) {
+            notifyFixed(context, fixed);
+        }
+    }
+
+    /** 立即自检：把系统里丢掉的闹铃补排回来，返回修好的数量 */
+    public static int checkNow(Context context) {
         int fixed = 0;
         try {
             AlarmStore store = new AlarmStore(context);
@@ -47,10 +55,7 @@ public class HealthReceiver extends BroadcastReceiver {
             }
         } catch (Exception ignored) {
         }
-
-        if (fixed > 0) {
-            notifyFixed(context, fixed);
-        }
+        return fixed;
     }
 
     private void notifyFixed(Context context, int fixed) {
