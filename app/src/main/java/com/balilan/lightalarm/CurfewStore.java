@@ -57,7 +57,7 @@ public class CurfewStore {
 
     /** 0=闹铃外放，1=媒体音（蓝牙耳机） */
     public int getSoundMode() {
-        return sp.getInt("soundMode", 0);
+        return sp.getInt("soundMode", 1);
     }
 
     public void setSoundMode(int mode) {

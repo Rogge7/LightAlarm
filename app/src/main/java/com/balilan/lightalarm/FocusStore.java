@@ -65,7 +65,7 @@ public class FocusStore {
         a.ringSeconds = 15;
         a.volume = 60;
         a.snoozeMinutes = 10;
-        a.soundMode = 0;
+        a.soundMode = 1;
         return a;
     }
 }

@@ -83,7 +83,7 @@
             android:name=".CurfewReceiver"
             android:exported="false" />
 
-        <!-- 每 4 小时闹钟健康检查 -->
+        <!-- 每 6 小时闹钟健康检查 -->
         <receiver
             android:name=".HealthReceiver"
             android:exported="false" />

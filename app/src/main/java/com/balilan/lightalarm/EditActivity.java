@@ -625,7 +625,7 @@ public class EditActivity extends AppCompatActivity {
         alarm.days = days;
 
         String label = etLabel.getText().toString().trim();
-        alarm.label = label.length() == 0 ? "睡觉提醒" : label;
+        alarm.label = label.length() == 0 ? "提醒" : label;
 
         String message = etMessage.getText().toString().trim();
         alarm.message = message.length() == 0 ? "今天到这儿吧，睡个好觉，明天见" : message;

@@ -105,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
         if (GuardService.isEnabled(this)) {
             GuardService.start(this);
         }
-        // 启动每 4 小时的闹钟健康检查（被系统清掉的闹钟会自动补回来）
+        // 启动每 6 小时的闹钟健康检查（被系统清掉的闹钟会自动补回来）
         AlarmScheduler.scheduleHealthCheck(this);
     }
 
@@ -471,7 +471,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-        addPermRow("闹钟健康检查（每 1 小时自动补排）", false, "立即自检",
+        addPermRow("闹钟健康检查（每 6 小时自动补排）", false, "立即自检",
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {

@@ -72,7 +72,7 @@ public class AlarmReceiver extends BroadcastReceiver {
 
             Notification n = new NotificationCompat.Builder(context, AlarmService.CHANNEL_FALLBACK)
                     .setSmallIcon(android.R.drawable.ic_popup_reminder)
-                    .setContentTitle("该睡觉了")
+                    .setContentTitle("提醒")
                     .setContentText(alarm.label)
                     .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setCategory(NotificationCompat.CATEGORY_ALARM)

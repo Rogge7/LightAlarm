@@ -117,7 +117,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:background="@drawable/bg_card"
-            android:hint="例如：睡觉提醒"
+            android:hint="例如：提醒"
             android:inputType="text"
             android:padding="12dp"
             android:singleLine="true"

@@ -13,7 +13,7 @@ public class Alarm {
     public int hour = 23;
     public int minute = 0;
     public int days = 0;
-    public String label = "睡觉提醒";
+    public String label = "提醒";
     /** 响铃页显示的提醒语，可在编辑页修改 */
     public String message = "今天到这儿吧，睡个好觉，明天见";
     public boolean enabled = true;
@@ -22,7 +22,7 @@ public class Alarm {
     public String soundName = "系统默认闹铃";
     public int ringSeconds = 60;
     /** 响铃方式：0=闹铃外放（走扬声器），1=媒体音（连蓝牙耳机时走耳机） */
-    public int soundMode = 0;
+    public int soundMode = 1;
     /** 应用内音量 0~100（不改系统音量） */
     public int volume = 80;
     public int snoozeMinutes = 10;
@@ -57,13 +57,13 @@ public class Alarm {
         a.hour = o.optInt("hour", 23);
         a.minute = o.optInt("minute", 0);
         a.days = o.optInt("days", 0);
-        a.label = o.optString("label", "睡觉提醒");
+        a.label = o.optString("label", "提醒");
         a.message = o.optString("message", "今天到这儿吧，睡个好觉，明天见");
         a.enabled = o.optBoolean("enabled", true);
         a.soundUri = o.optString("soundUri", "");
         a.soundName = o.optString("soundName", "系统默认闹铃");
         a.ringSeconds = o.optInt("ringSeconds", 60);
-        a.soundMode = o.optInt("soundMode", 0);
+        a.soundMode = o.optInt("soundMode", 1);
         a.volume = o.optInt("volume", 80);
         a.snoozeMinutes = o.optInt("snoozeMinutes", 10);
         return a;

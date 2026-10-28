@@ -195,7 +195,7 @@ public class AlarmService extends Service {
         String time = String.format(Locale.getDefault(), "%02d:%02d", alarm.hour, alarm.minute);
         return new NotificationCompat.Builder(this, CHANNEL_RING)
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
-                .setContentTitle("该睡觉了 · " + time)
+                .setContentTitle("提醒 · " + time)
                 .setContentText(alarm.label)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -234,7 +234,7 @@ public class AlarmService extends Service {
         String time = String.format(Locale.getDefault(), "%02d:%02d", alarm.hour, alarm.minute);
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL_AFTER)
                 .setSmallIcon(android.R.drawable.ic_popup_reminder)
-                .setContentTitle("该睡觉了 · " + time)
+                .setContentTitle("提醒 · " + time)
                 .setContentText(alarm.message)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(alarm.message))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -373,6 +373,9 @@ public class AlarmService extends Service {
         if (!new FocusStore(this).isVoiceEnabled()) return;
         String text = alarm.message == null ? "" : alarm.message.trim();
         if (text.length() == 0) return;
+        // TTS 跟随闹铃的 soundMode：媒体音模式下让 TTS 也走蓝牙耳机
+        final int usage = alarm.soundMode == 1
+                ? AudioAttributes.USAGE_MEDIA : AudioAttributes.USAGE_ALARM;
         pendingSpeech = text;
         if (tts == null) {
             tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
@@ -382,7 +385,7 @@ public class AlarmService extends Service {
                     try {
                         tts.setLanguage(Locale.CHINA);
                         tts.setAudioAttributes(new AudioAttributes.Builder()
-                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setUsage(usage)
                                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                                 .build());
                         ttsReady = true;
@@ -395,6 +398,14 @@ public class AlarmService extends Service {
                 }
             });
         } else if (ttsReady) {
+            // 如果 TTS 已初始化但 soundMode 变了，重新设一下 AudioAttributes
+            try {
+                tts.setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(usage)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build());
+            } catch (Exception ignored) {
+            }
             doSpeak(text);
         }
     }

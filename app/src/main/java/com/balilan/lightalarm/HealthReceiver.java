@@ -14,7 +14,7 @@ import androidx.core.app.NotificationCompat;
 import java.util.List;
 
 /**
- * 每 4 小时自检一次：发现启用中的闹铃在系统里消失了（被清理/重启后未恢复），
+ * 每 6 小时自检一次：发现启用中的闹铃在系统里消失了（被清理/重启后未恢复），
  * 自动重新排程，并发通知告诉用户修了几个；一个都不少时保持安静。
  */
 public class HealthReceiver extends BroadcastReceiver {

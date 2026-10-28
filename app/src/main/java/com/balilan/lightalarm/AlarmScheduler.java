@@ -143,7 +143,7 @@ public class AlarmScheduler {
         return PendingIntent.getBroadcast(ctx, 0, i, flags);
     }
 
-    /* ---------------- 每 4 小时健康检查 ---------------- */
+    /* ---------------- 每 6 小时健康检查 ---------------- */
 
     public static void scheduleHealthCheck(Context ctx) {
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
