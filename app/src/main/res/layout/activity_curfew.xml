@@ -151,13 +151,30 @@
             </LinearLayout>
         </LinearLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="提醒语"
-            android:textColor="@color/sub"
-            android:textSize="13sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="提醒语"
+                android:textColor="@color/sub"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/btnCurfewPhrases"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="6dp"
+                android:text="从语库选"
+                android:textColor="@color/primary"
+                android:textSize="13sp" />
+        </LinearLayout>
 
         <EditText
             android:id="@+id/etCurfewMessage"
@@ -165,7 +182,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:background="@drawable/bg_card"
-            android:hint="例如：已经很晚了，放下手机睡觉吧"
+            android:hint="例如：夜深了，手机可以明天再玩"
             android:inputType="text"
             android:padding="12dp"
             android:singleLine="true"

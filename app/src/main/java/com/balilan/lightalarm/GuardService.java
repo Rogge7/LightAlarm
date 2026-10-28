@@ -5,10 +5,16 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.PowerManager;
+import android.os.SystemClock;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -30,6 +36,19 @@ public class GuardService extends Service {
 
     private static final String PREF = "lightalarm_prefs";
     private static final String KEY_GUARD = "guard_enabled";
+
+    /* ---------- 连续亮屏计时（事件驱动，不做轮询） ---------- */
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private BroadcastReceiver screenReceiver;
+    private long screenOnAt;
+    private boolean remindedThisStreak;
+
+    private final Runnable remindRunnable = new Runnable() {
+        @Override
+        public void run() {
+            onScreenTimeReached();
+        }
+    };
 
     public static boolean isEnabled(Context ctx) {
         return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_GUARD, false);
@@ -72,6 +91,7 @@ public class GuardService extends Service {
             AlarmScheduler.rescheduleAll(this);
         } catch (Exception ignored) {
         }
+        registerScreenTracking();
     }
 
     @Override
@@ -81,16 +101,91 @@ public class GuardService extends Service {
             if (nm != null) nm.notify(NOTIFICATION_ID, buildNotification());
         } catch (Exception ignored) {
         }
+        // 阈值可能刚被改过，重新计时
+        scheduleReminder();
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        if (screenReceiver != null) {
+            try {
+                unregisterReceiver(screenReceiver);
+            } catch (Exception ignored) {
+            }
+            screenReceiver = null;
+        }
         try {
             stopForeground(true);
         } catch (Exception ignored) {
         }
         super.onDestroy();
+    }
+
+    /* ---------------- 连续亮屏计时 ---------------- */
+
+    private void registerScreenTracking() {
+        if (screenReceiver != null) return;
+        screenReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (Intent.ACTION_SCREEN_ON.equals(action)) {
+                    screenOnAt = SystemClock.elapsedRealtime();
+                    remindedThisStreak = false;
+                    scheduleReminder();
+                } else if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                    handler.removeCallbacks(remindRunnable);
+                    screenOnAt = 0;
+                    remindedThisStreak = false;
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        try {
+            registerReceiver(screenReceiver, filter);
+        } catch (Exception ignored) {
+        }
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (pm != null && pm.isInteractive()) {
+            // 服务在亮屏状态下被拉起：从此刻开始计时（此前的时长无法回溯）
+            screenOnAt = SystemClock.elapsedRealtime();
+            scheduleReminder();
+        }
+    }
+
+    private void scheduleReminder() {
+        handler.removeCallbacks(remindRunnable);
+        FocusStore fs = new FocusStore(this);
+        if (!fs.isScreenEnabled() || remindedThisStreak || screenOnAt <= 0) return;
+        long target = fs.getThresholdMin() * 60_000L;
+        long used = SystemClock.elapsedRealtime() - screenOnAt;
+        long remaining = target - used;
+        if (remaining <= 0) {
+            handler.post(remindRunnable);
+        } else {
+            handler.postDelayed(remindRunnable, remaining);
+        }
+    }
+
+    private void onScreenTimeReached() {
+        FocusStore fs = new FocusStore(this);
+        if (!fs.isScreenEnabled() || remindedThisStreak) return;
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (pm == null || !pm.isInteractive()) return;
+        remindedThisStreak = true;
+
+        Intent service = new Intent(this, AlarmService.class);
+        service.putExtra(AlarmScheduler.EXTRA_ID, AlarmScheduler.SCREEN_TIME_ID);
+        service.putExtra("screen_minutes", fs.getThresholdMin());
+        try {
+            ContextCompat.startForegroundService(this, service);
+        } catch (Exception ignored) {
+        }
     }
 
     @Override

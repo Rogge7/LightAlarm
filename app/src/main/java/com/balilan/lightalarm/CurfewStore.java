@@ -48,7 +48,7 @@ public class CurfewStore {
     }
 
     public String getMessage() {
-        return sp.getString("message", "已经很晚了，放下手机睡觉吧");
+        return sp.getString("message", "夜深了，手机可以明天再玩");
     }
 
     public void setMessage(String message) {
@@ -99,7 +99,7 @@ public class CurfewStore {
         a.id = AlarmScheduler.CURFEW_ID;
         a.label = "宵禁提醒";
         String msg = getMessage();
-        a.message = msg.length() == 0 ? "已经很晚了，放下手机睡觉吧" : msg;
+        a.message = msg.length() == 0 ? "夜深了，手机可以明天再玩" : msg;
         a.enabled = true;
         a.days = 0;
         a.soundUri = "";

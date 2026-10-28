@@ -22,10 +22,12 @@ public class AlarmScheduler {
 
     /** 宵禁提醒使用的伪闹铃 ID（正常闹铃 ID 是时间戳，不会撞） */
     public static final long CURFEW_ID = -1000L;
+    /** 连续亮屏提醒使用的伪闹铃 ID */
+    public static final long SCREEN_TIME_ID = -2000L;
     public static final String ACTION_CURFEW = "com.balilan.lightalarm.CURFEW_TICK";
     public static final String ACTION_HEALTH = "com.balilan.lightalarm.HEALTH_CHECK";
-    /** 健康检查间隔：1 小时（验证阶段，确认有效后可改回 4 小时） */
-    private static final long HEALTH_INTERVAL = 3600_000L;
+    /** 健康检查间隔：6 小时（自检 + 自动补排被系统清掉的闹铃） */
+    private static final long HEALTH_INTERVAL = 6L * 3600_000L;
 
     /** 下一次触发时间（毫秒）；无法计算时返回 -1 */
     public static long nextTriggerAt(Alarm a, long fromMillis) {

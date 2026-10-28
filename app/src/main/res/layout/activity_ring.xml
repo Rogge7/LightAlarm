@@ -33,7 +33,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="该睡觉了"
+        android:text="睡觉提醒"
         android:textColor="@color/accent"
         android:textSize="24sp"
         android:textStyle="bold" />
@@ -52,7 +52,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="22dp"
-        android:text="放下手机吧，明天还要早起"
+        android:text="今天到这儿吧，睡个好觉，明天见"
         android:textColor="@color/ring_sub"
         android:textSize="16sp" />
 

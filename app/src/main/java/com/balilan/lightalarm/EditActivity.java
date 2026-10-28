@@ -86,6 +86,12 @@ public class EditActivity extends AppCompatActivity {
         timePicker = findViewById(R.id.timePicker);
         etLabel = findViewById(R.id.etLabel);
         etMessage = findViewById(R.id.etMessage);
+        findViewById(R.id.btnPhrases).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Phrases.showPicker(EditActivity.this, etMessage);
+            }
+        });
         tvSound = findViewById(R.id.tvSound);
         tvVolumeLabel = findViewById(R.id.tvVolumeLabel);
         seekVolume = findViewById(R.id.seekVolume);
@@ -619,10 +625,10 @@ public class EditActivity extends AppCompatActivity {
         alarm.days = days;
 
         String label = etLabel.getText().toString().trim();
-        alarm.label = label.length() == 0 ? "该睡觉了" : label;
+        alarm.label = label.length() == 0 ? "睡觉提醒" : label;
 
         String message = etMessage.getText().toString().trim();
-        alarm.message = message.length() == 0 ? "放下手机吧，明天还要早起" : message;
+        alarm.message = message.length() == 0 ? "今天到这儿吧，睡个好觉，明天见" : message;
 
         alarm.soundUri = soundUri;
         alarm.soundName = soundName;

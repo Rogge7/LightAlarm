@@ -13,9 +13,9 @@ public class Alarm {
     public int hour = 23;
     public int minute = 0;
     public int days = 0;
-    public String label = "该睡觉了";
+    public String label = "睡觉提醒";
     /** 响铃页显示的提醒语，可在编辑页修改 */
-    public String message = "放下手机吧，明天还要早起";
+    public String message = "今天到这儿吧，睡个好觉，明天见";
     public boolean enabled = true;
     /** 空字符串表示使用系统默认闹铃 */
     public String soundUri = "";
@@ -57,8 +57,8 @@ public class Alarm {
         a.hour = o.optInt("hour", 23);
         a.minute = o.optInt("minute", 0);
         a.days = o.optInt("days", 0);
-        a.label = o.optString("label", "该睡觉了");
-        a.message = o.optString("message", "放下手机吧，明天还要早起");
+        a.label = o.optString("label", "睡觉提醒");
+        a.message = o.optString("message", "今天到这儿吧，睡个好觉，明天见");
         a.enabled = o.optBoolean("enabled", true);
         a.soundUri = o.optString("soundUri", "");
         a.soundName = o.optString("soundName", "系统默认闹铃");

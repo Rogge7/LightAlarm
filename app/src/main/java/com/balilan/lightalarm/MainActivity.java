@@ -46,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvNextAlarm;
     private Switch switchCurfew;
     private TextView tvCurfewInfo;
-    private boolean permExpanded;
+    private Switch switchScreen;
+    private TextView tvScreenInfo;
+    private Switch switchVoice;
+    private boolean permExpanded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +71,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this, CurfewActivity.class));
+            }
+        });
+
+        switchScreen = findViewById(R.id.switchScreen);
+        tvScreenInfo = findViewById(R.id.tvScreenInfo);
+        switchVoice = findViewById(R.id.switchVoice);
+        findViewById(R.id.screenCard).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showScreenSettings();
             }
         });
 
@@ -113,6 +126,103 @@ public class MainActivity extends AppCompatActivity {
         renderPermissions();
         renderStatus();
         renderCurfew();
+        renderFocus();
+    }
+
+    /** 连续亮屏提醒 与 语音播报 */
+    private void renderFocus() {
+        final FocusStore fs = new FocusStore(this);
+
+        switchScreen.setOnCheckedChangeListener(null);
+        switchScreen.setChecked(fs.isScreenEnabled());
+        switchScreen.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(android.widget.CompoundButton buttonView, boolean isChecked) {
+                fs.setScreenEnabled(isChecked);
+                if (isChecked) {
+                    // 计时依赖常驻服务，开启时把服务拉起来
+                    GuardService.start(MainActivity.this);
+                }
+                Toast.makeText(MainActivity.this,
+                        isChecked ? "已开启：连续亮屏超过阈值会提醒你休息"
+                                : "已关闭连续亮屏提醒", Toast.LENGTH_SHORT).show();
+                renderFocus();
+            }
+        });
+
+        if (fs.isScreenEnabled()) {
+            tvScreenInfo.setText("连续亮屏 " + fs.getThresholdMin()
+                    + " 分钟后提醒休息 · 点卡片修改阈值和提醒语");
+        } else {
+            tvScreenInfo.setText("关闭中 · 连续亮屏 " + fs.getThresholdMin()
+                    + " 分钟后提醒你休息，点卡片设置");
+        }
+
+        switchVoice.setOnCheckedChangeListener(null);
+        switchVoice.setChecked(fs.isVoiceEnabled());
+        switchVoice.setOnCheckedChangeListener(new android.widget.CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(android.widget.CompoundButton buttonView, boolean isChecked) {
+                fs.setVoiceEnabled(isChecked);
+                Toast.makeText(MainActivity.this,
+                        isChecked ? "已开启：响铃时会朗读提醒语（需要手机有中文语音引擎）"
+                                : "已关闭语音播报", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /** 连续亮屏提醒设置：阈值 + 提醒语 */
+    private void showScreenSettings() {
+        final FocusStore fs = new FocusStore(this);
+        final int[] options = {30, 45, 60, 90, 120};
+
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad / 2, pad, 0);
+
+        android.widget.TextView tv1 = new android.widget.TextView(this);
+        tv1.setText("连续亮屏多久后提醒");
+        box.addView(tv1);
+
+        final android.widget.Spinner sp = new android.widget.Spinner(this);
+        String[] names = new String[options.length];
+        for (int i = 0; i < options.length; i++) names[i] = options[i] + " 分钟";
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, names);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        sp.setAdapter(adapter);
+        for (int i = 0; i < options.length; i++) {
+            if (options[i] == fs.getThresholdMin()) sp.setSelection(i);
+        }
+        box.addView(sp);
+
+        android.widget.TextView tv2 = new android.widget.TextView(this);
+        tv2.setText("提醒语（%d 会替换成分钟数）");
+        tv2.setPadding(0, pad, 0, 0);
+        box.addView(tv2);
+
+        final android.widget.EditText et = new android.widget.EditText(this);
+        et.setText(fs.getScreenMessage());
+        et.setSingleLine(true);
+        box.addView(et);
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("连续亮屏提醒")
+                .setView(box)
+                .setPositiveButton("保存", new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface dialog, int which) {
+                        fs.setThresholdMin(options[sp.getSelectedItemPosition()]);
+                        String msg = et.getText().toString().trim();
+                        fs.setScreenMessage(msg.length() == 0
+                                ? "你已经连续看了 %d 分钟手机，闭目养神一会儿吧" : msg);
+                        GuardService.start(MainActivity.this);
+                        renderFocus();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void renderCurfew() {

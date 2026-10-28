@@ -18,6 +18,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -48,6 +49,9 @@ public class AlarmService extends Service {
     private PowerManager.WakeLock wakeLock;
     private View overlayView;
     private Alarm currentAlarm;
+    private TextToSpeech tts;
+    private boolean ttsReady;
+    private String pendingSpeech;
 
     private final Runnable stopRunnable = new Runnable() {
         @Override
@@ -75,6 +79,10 @@ public class AlarmService extends Service {
         if (id == AlarmScheduler.CURFEW_ID) {
             // 宵禁提醒是伪闹铃，参数来自 CurfewStore
             alarm = new CurfewStore(this).toAlarm();
+        } else if (id == AlarmScheduler.SCREEN_TIME_ID) {
+            // 连续亮屏提醒也是伪闹铃，参数来自 FocusStore
+            int minutes = intent == null ? 45 : intent.getIntExtra("screen_minutes", 45);
+            alarm = new FocusStore(this).toScreenAlarm(minutes);
         } else {
             alarm = new AlarmStore(this).find(id);
         }
@@ -89,6 +97,7 @@ public class AlarmService extends Service {
         startForeground(NOTIFICATION_ID, buildNotification(alarm));
         acquireWakeLock();
         playSound(alarm);
+        speakMessage(alarm);
         // 亮屏解锁时系统通常不会自动拉起全屏页：优先用悬浮窗，其次尝试直接拉起页面
         showPopup(alarm);
 
@@ -103,6 +112,18 @@ public class AlarmService extends Service {
         handler.removeCallbacksAndMessages(null);
         hideOverlay();
         stopPlayer();
+        if (tts != null) {
+            try {
+                tts.stop();
+            } catch (Exception ignored) {
+            }
+            try {
+                tts.shutdown();
+            } catch (Exception ignored) {
+            }
+            tts = null;
+            ttsReady = false;
+        }
         releaseWakeLock();
         try {
             stopForeground(true);
@@ -343,6 +364,45 @@ public class AlarmService extends Service {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP
                     | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(i);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** 语音播报提醒语（使用系统自带 TTS，免费离线；没有中文引擎时静默跳过） */
+    private void speakMessage(Alarm alarm) {
+        if (!new FocusStore(this).isVoiceEnabled()) return;
+        String text = alarm.message == null ? "" : alarm.message.trim();
+        if (text.length() == 0) return;
+        pendingSpeech = text;
+        if (tts == null) {
+            tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+                @Override
+                public void onInit(int status) {
+                    if (status != TextToSpeech.SUCCESS || tts == null) return;
+                    try {
+                        tts.setLanguage(Locale.CHINA);
+                        tts.setAudioAttributes(new AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                .build());
+                        ttsReady = true;
+                    } catch (Exception ignored) {
+                    }
+                    if (pendingSpeech != null) {
+                        doSpeak(pendingSpeech);
+                        pendingSpeech = null;
+                    }
+                }
+            });
+        } else if (ttsReady) {
+            doSpeak(text);
+        }
+    }
+
+    private void doSpeak(String text) {
+        if (tts == null || !ttsReady) return;
+        try {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "lightalarm_tts");
         } catch (Exception ignored) {
         }
     }

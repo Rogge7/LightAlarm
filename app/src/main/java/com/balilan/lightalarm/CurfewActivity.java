@@ -45,6 +45,12 @@ public class CurfewActivity extends AppCompatActivity {
         spInterval = findViewById(R.id.spCurfewInterval);
         spSoundMode = findViewById(R.id.spCurfewSoundMode);
         etMessage = findViewById(R.id.etCurfewMessage);
+        findViewById(R.id.btnCurfewPhrases).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Phrases.showPicker(CurfewActivity.this, etMessage);
+            }
+        });
 
         switchEnable.setChecked(cs.isEnabled());
         etMessage.setText(cs.getMessage());
@@ -119,7 +125,7 @@ public class CurfewActivity extends AppCompatActivity {
         cs.setIntervalMin(new int[]{5, 10, 15, 20, 30}[spInterval.getSelectedItemPosition()]);
         cs.setSoundMode(spSoundMode.getSelectedItemPosition() == 1 ? 1 : 0);
         String msg = etMessage.getText().toString().trim();
-        cs.setMessage(msg.length() == 0 ? "已经很晚了，放下手机睡觉吧" : msg);
+        cs.setMessage(msg.length() == 0 ? "夜深了，手机可以明天再玩" : msg);
 
         AlarmScheduler.scheduleCurfew(this);
         Toast.makeText(this, switchEnable.isChecked() ? "宵禁模式已开启" : "宵禁模式已关闭",

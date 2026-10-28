@@ -11,4 +11,5 @@
     <color name="ring_bg">#FF0E1626</color>
     <color name="ring_sub">#FFB8C4D6</color>
     <color name="ring_hint">#FF7E8BA3</color>
+    <color name="ic_launcher_background">#FF141B2E</color>
 </resources>
