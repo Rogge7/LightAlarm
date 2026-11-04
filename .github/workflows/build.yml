@@ -108,7 +108,9 @@ jobs:
           name: "亮屏闹铃 ${{ steps.version.outputs.tag }}  (code ${{ steps.version.outputs.version_code }})"
           body: |
             ${{ steps.changelog.outputs.body }}
-          files: 亮屏闹铃.apk
+          files:
+            - path: 亮屏闹铃.apk
+              name: LightAlarm-${{ steps.version.outputs.tag }}.apk
           update_existing: true
           draft: false
           prerelease: false
