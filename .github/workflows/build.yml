@@ -59,17 +59,6 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle assembleRelease --no-daemon --stacktrace
 
-      - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk "亮屏闹铃.apk"
-
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: LightAlarm-apk
-          path: 亮屏闹铃.apk
-          retention-days: 90
-          if-no-files-found: error
-
       - name: Extract version from build.gradle
         id: version
         run: |
@@ -80,6 +69,20 @@ jobs:
           echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "Release ${TAG} (code ${VERSION_CODE})"
+
+      - name: Rename APK (two copies: Chinese for artifact, English with tag for Release)
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "亮屏闹铃.apk"
+          cp app/build/outputs/apk/release/app-release.apk "LightAlarm-${{ steps.version.outputs.tag }}.apk"
+          ls -la *.apk
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LightAlarm-apk
+          path: 亮屏闹铃.apk
+          retention-days: 90
+          if-no-files-found: error
 
       - name: Generate changelog from git log
         id: changelog
@@ -95,7 +98,7 @@ jobs:
           fi
           echo "---" >> changelog.md
           echo "" >> changelog.md
-          echo "包含 APK：**亮屏闹铃.apk**（release 签名）" >> changelog.md
+          echo "包含 APK：**LightAlarm-${TAG}.apk**（release 签名）" >> changelog.md
           cat changelog.md
           echo "body<<EOF" >> "$GITHUB_OUTPUT"
           cat changelog.md >> "$GITHUB_OUTPUT"
@@ -108,9 +111,7 @@ jobs:
           name: "亮屏闹铃 ${{ steps.version.outputs.tag }}  (code ${{ steps.version.outputs.version_code }})"
           body: |
             ${{ steps.changelog.outputs.body }}
-          files:
-            - path: 亮屏闹铃.apk
-              name: LightAlarm-${{ steps.version.outputs.tag }}.apk
+          files: LightAlarm-*.apk
           update_existing: true
           draft: false
           prerelease: false
