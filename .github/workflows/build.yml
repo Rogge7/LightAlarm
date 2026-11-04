@@ -70,7 +70,7 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "Release ${TAG} (code ${VERSION_CODE})"
 
-      - name: Rename APK (two copies: Chinese for artifact, English with tag for Release)
+      - name: "Rename APK (two copies: Chinese for artifact, English with tag for Release)"
         run: |
           cp app/build/outputs/apk/release/app-release.apk "亮屏闹铃.apk"
           cp app/build/outputs/apk/release/app-release.apk "LightAlarm-${{ steps.version.outputs.tag }}.apk"
