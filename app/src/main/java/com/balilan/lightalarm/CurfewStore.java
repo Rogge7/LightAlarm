@@ -64,6 +64,59 @@ public class CurfewStore {
         sp.edit().putInt("soundMode", mode).apply();
     }
 
+    /** 铃声 URI（空字符串=系统默认） */
+    public String getSoundUri() {
+        return sp.getString("soundUri", "");
+    }
+
+    public void setSoundUri(String uri) {
+        sp.edit().putString("soundUri", uri == null ? "" : uri).apply();
+    }
+
+    public String getSoundName() {
+        return sp.getString("soundName", "系统默认闹铃");
+    }
+
+    public void setSoundName(String name) {
+        sp.edit().putString("soundName", name == null ? "" : name).apply();
+    }
+
+    /** 应用内音量 0~100，默认 50 */
+    public int getVolume() {
+        return sp.getInt("volume", 50);
+    }
+
+    public void setVolume(int v) {
+        sp.edit().putInt("volume", Math.max(0, Math.min(100, v))).apply();
+    }
+
+    /** 响铃时长秒，默认 10 */
+    public int getRingSeconds() {
+        return sp.getInt("ringSeconds", 10);
+    }
+
+    public void setRingSeconds(int seconds) {
+        sp.edit().putInt("ringSeconds", seconds).apply();
+    }
+
+    /** 宵禁是否启用 TTS 语音播报，默认 true */
+    public boolean isVoiceEnabled() {
+        return sp.getBoolean("voiceEnabled", true);
+    }
+
+    public void setVoiceEnabled(boolean enabled) {
+        sp.edit().putBoolean("voiceEnabled", enabled).apply();
+    }
+
+    /** 忽略亮屏/锁屏条件：灭屏锁屏也响，番茄钟模式。默认 false */
+    public boolean getIgnoreScreenCond() {
+        return sp.getBoolean("ignoreScreenCond", false);
+    }
+
+    public void setIgnoreScreenCond(boolean ignore) {
+        sp.edit().putBoolean("ignoreScreenCond", ignore).apply();
+    }
+
     /** 当前时刻是否处于宵禁时段内（支持跨天，如 23:00–06:00） */
     public boolean inWindow(long nowMillis) {
         Calendar c = Calendar.getInstance();
@@ -102,12 +155,14 @@ public class CurfewStore {
         a.message = msg.length() == 0 ? "夜深了，手机可以明天再玩" : msg;
         a.enabled = true;
         a.days = 0;
-        a.soundUri = "";
-        a.soundName = "系统默认闹铃";
-        a.ringSeconds = 10;
-        a.volume = 50;
+        a.soundUri = getSoundUri();
+        a.soundName = getSoundName();
+        a.ringSeconds = getRingSeconds();
+        a.volume = getVolume();
         a.snoozeMinutes = getIntervalMin();
         a.soundMode = getSoundMode();
+        // 宵禁独立控制 TTS 开关（不跟全局 FocusStore 绑死）
+        a.voiceEnabled = isVoiceEnabled();
         return a;
     }
 }

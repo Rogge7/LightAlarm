@@ -277,6 +277,16 @@
             android:layout_marginTop="4dp"
             android:max="100" />
 
+        <CheckBox
+            android:id="@+id/cbIgnoreScreenCond"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:padding="4dp"
+            android:text="忽略亮屏条件（灭屏锁屏也响，番茄钟模式）"
+            android:textColor="@color/text"
+            android:textSize="14sp" />
+
         <Button
             android:id="@+id/btnSave"
             android:layout_width="match_parent"

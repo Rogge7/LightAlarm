@@ -26,6 +26,11 @@ public class Alarm {
     /** 应用内音量 0~100（不改系统音量） */
     public int volume = 80;
     public int snoozeMinutes = 10;
+    /** 忽略亮屏/锁屏条件：灭屏锁屏也响，番茄钟模式。默认 false */
+    public boolean ignoreScreenCond = false;
+
+    /** 运行时专用：该闹铃是否启用 TTS 语音播报（为 null 时使用全局 FocusStore 设置）。不参与 JSON 序列化 */
+    public transient Boolean voiceEnabled;
 
     public Alarm() {
     }
@@ -46,6 +51,7 @@ public class Alarm {
             o.put("soundMode", soundMode);
             o.put("volume", volume);
             o.put("snoozeMinutes", snoozeMinutes);
+            o.put("ignoreScreenCond", ignoreScreenCond);
         } catch (JSONException ignored) {
         }
         return o;
@@ -66,6 +72,7 @@ public class Alarm {
         a.soundMode = o.optInt("soundMode", 1);
         a.volume = o.optInt("volume", 80);
         a.snoozeMinutes = o.optInt("snoozeMinutes", 10);
+        a.ignoreScreenCond = o.optBoolean("ignoreScreenCond", false);
         return a;
     }
 

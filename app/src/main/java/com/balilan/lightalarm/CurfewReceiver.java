@@ -23,12 +23,15 @@ public class CurfewReceiver extends BroadcastReceiver {
         CurfewStore cs = new CurfewStore(context);
         if (!cs.isEnabled() || !cs.inWindow(System.currentTimeMillis())) return;
 
-        boolean usable = AlarmScheduler.isScreenOnAndUnlocked(context);
+        // ignoreScreenCond=true 时忽略亮屏条件（番茄钟模式：灭屏锁屏也响）
+        boolean ignoreCond = cs.getIgnoreScreenCond();
+        boolean usable = ignoreCond || AlarmScheduler.isScreenOnAndUnlocked(context);
         new AlarmStore(context).recordTrigger("宵禁提醒", !usable);
         if (!usable) return;
 
         Intent service = new Intent(context, AlarmService.class);
         service.putExtra(AlarmScheduler.EXTRA_ID, AlarmScheduler.CURFEW_ID);
+        service.putExtra(AlarmScheduler.EXTRA_IGNORE_COND, ignoreCond);
         try {
             ContextCompat.startForegroundService(context, service);
         } catch (Exception ignored) {

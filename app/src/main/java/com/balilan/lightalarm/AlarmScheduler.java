@@ -19,6 +19,8 @@ public class AlarmScheduler {
     public static final String ACTION_FIRE_SNOOZE = "com.balilan.lightalarm.ALARM_FIRE_SNOOZE";
     public static final String EXTRA_ID = "alarm_id";
     public static final String EXTRA_SNOOZE = "is_snooze";
+    /** 是否忽略亮屏条件（番茄钟模式：灭屏锁屏也响） */
+    public static final String EXTRA_IGNORE_COND = "ignore_cond";
 
     /** 宵禁提醒使用的伪闹铃 ID（正常闹铃 ID 是时间戳，不会撞） */
     public static final long CURFEW_ID = -1000L;

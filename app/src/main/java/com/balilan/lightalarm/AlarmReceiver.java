@@ -29,7 +29,9 @@ public class AlarmReceiver extends BroadcastReceiver {
         // 已手动关闭的闹钟即使收到残留广播也不响（贪睡不受影响）
         if (!alarm.enabled && !snooze) return;
 
-        boolean usable = AlarmScheduler.isScreenOnAndUnlocked(context);
+        // ignoreScreenCond=true 时忽略亮屏条件（番茄钟模式：灭屏锁屏也响）
+        boolean ignoreCond = alarm.ignoreScreenCond;
+        boolean usable = ignoreCond || AlarmScheduler.isScreenOnAndUnlocked(context);
         store.recordTrigger(alarm.label, !usable);
 
         // 不管响不响，都要把下一次排好
@@ -49,6 +51,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         Intent service = new Intent(context, AlarmService.class);
         service.putExtra(AlarmScheduler.EXTRA_ID, alarm.id);
         service.putExtra(AlarmScheduler.EXTRA_SNOOZE, snooze);
+        service.putExtra(AlarmScheduler.EXTRA_IGNORE_COND, ignoreCond);
         try {
             if (Build.VERSION.SDK_INT >= 26) {
                 context.startForegroundService(service);

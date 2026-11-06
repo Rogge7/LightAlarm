@@ -91,6 +91,8 @@ public class AlarmService extends Service {
             return START_NOT_STICKY;
         }
         currentAlarm = alarm;
+        // ignoreCond=true 表示闹铃开启了“忽略亮屏条件”（番茄钟模式：灭屏锁屏也响）
+        boolean ignoreCond = intent != null && intent.getBooleanExtra(AlarmScheduler.EXTRA_IGNORE_COND, false);
         // 新一轮响铃开始，清掉上一次残留的“已提醒”通知
         cancelKeepNotice();
 
@@ -98,8 +100,11 @@ public class AlarmService extends Service {
         acquireWakeLock();
         playSound(alarm);
         speakMessage(alarm);
-        // 亮屏解锁时系统通常不会自动拉起全屏页：优先用悬浮窗，其次尝试直接拉起页面
-        showPopup(alarm);
+        // ignoreCond 模式下可能灭屏，悬浮窗没人看，跳过；
+        // 声音由 MediaPlayer 播放，弹窗由 Notification + FullScreenIntent 负责（灭屏时系统自动亮屏）
+        if (!ignoreCond) {
+            showPopup(alarm);
+        }
 
         int seconds = Math.max(5, alarm.ringSeconds);
         handler.removeCallbacks(stopRunnable);
@@ -370,7 +375,11 @@ public class AlarmService extends Service {
 
     /** 语音播报提醒语（使用系统自带 TTS，免费离线；没有中文引擎时静默跳过） */
     private void speakMessage(Alarm alarm) {
-        if (!new FocusStore(this).isVoiceEnabled()) return;
+        // 优先用闹铃自身的 voiceEnabled（如宵禁伪闹铃），null 时退回全局 FocusStore
+        boolean enabled = alarm.voiceEnabled != null
+                ? alarm.voiceEnabled
+                : new FocusStore(this).isVoiceEnabled();
+        if (!enabled) return;
         String text = alarm.message == null ? "" : alarm.message.trim();
         if (text.length() == 0) return;
         // TTS 跟随闹铃的 soundMode：媒体音模式下让 TTS 也走蓝牙耳机
